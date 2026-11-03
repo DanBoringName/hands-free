@@ -1,0 +1,23 @@
+# Read by the pre-commit hook and by a bare `markdownlint-cli2` run, so both agree.
+# Rule reference: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+fix: true
+
+config:
+  # Every fenced block names its language.
+  MD040: true
+  # Inline HTML is flagged, apart from the collapsible dropdown tags.
+  MD033:
+    allowed_elements:
+      - details
+      - summary
+  # Prose is one line per paragraph, not hard-wrapped.
+  MD013: false
+  # ADRs repeat headings under different parents. Only siblings must differ.
+  MD024:
+    siblings_only: true
+
+# A pull request body is a fragment that opens with `Closes #`, not a document with a
+# title, so the first-line-heading rule cannot hold for its template.
+ignores:
+  - ".github/PULL_REQUEST_TEMPLATE.md"

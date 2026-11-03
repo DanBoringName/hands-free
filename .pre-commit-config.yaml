@@ -1,0 +1,149 @@
+# One-time setup after cloning:
+#   uv sync --locked
+#   uv run --no-sync pre-commit install --hook-type pre-commit --hook-type commit-msg
+#
+# CI runs `pre-commit run --all-files` over this file as the `pre-commit gate` job, and
+# runs the commit-msg hooks over every commit of a pull request as `commit messages`.
+# A commit that passes these hooks here passes them in CI. Only the pull request title
+# is checked in CI alone.
+#
+# Each rev was at least seven days old when pinned. Dependabot moves them after the same
+# seven-day cooldown the uv lock uses (ADR-002).
+#
+# A hook with no `stages` would otherwise also run against the commit message.
+default_stages: [pre-commit, manual]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        # VSCode's files are JSON with comments, which a strict parser refuses.
+        exclude: ^\.vscode/
+      # Without the flag it checks nothing unless a merge is in progress.
+      - id: check-merge-conflict
+        args: [--assume-in-merge]
+      - id: check-case-conflict
+      - id: detect-private-key
+      # Without `--enforce-all` it only checks staged additions, so CI would check
+      # nothing.
+      - id: check-added-large-files
+        args: [--enforce-all]
+
+  # The repository is public. A Windows user folder or a Linux home directory carries a
+  # name derived from the owner's real one, so paths come from configuration instead.
+  # Commit messages are public too. `/home/runner` is the CI machine's.
+  - repo: local
+    hooks:
+      - id: no-personal-paths
+        name: no Windows user folder or home directory
+        language: pygrep
+        # Case-insensitive, either separator, and separators may be doubled as in a
+        # string literal. A home directory needs no trailing slash, so `$HOME` written
+        # out and a `\\wsl.localhost` path are caught too.
+        entry: '(?i)[a-z]:[\\/]+users[\\/]+(?![\\/]*public[\\/])|/mnt/[a-z]/users/(?!public/)|[\\/]home[\\/]+(?!runner(?![a-z0-9_.-]))[a-z_][a-z0-9_.-]*'
+        types: [text]
+        stages: [pre-commit, commit-msg, manual]
+
+  # The locked ruff and ty, so the versions judging the code are the ones in `uv.lock`
+  # and there is no second pin to keep level with them.
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --no-sync ruff check --force-exclude --fix
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --no-sync ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ty
+        name: ty
+        entry: uv run --no-sync ty check
+        language: system
+        types: [python]
+        pass_filenames: false
+
+  # Markdown lint. Rules live in `.markdownlint-cli2.yaml`, so a bare
+  # `markdownlint-cli2` run and this hook agree. pre-commit provisions its own Node,
+  # pinned because the cspell and markdownlint releases here refuse Node 18.
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.23.3
+    hooks:
+      - id: markdownlint-cli2
+        language_version: "22.23.2"
+
+  # Spelling, in British English. The dictionary lives in `cspell.json`, so the editor
+  # extension agrees. The Python run reads docstrings and comments, and cspell splits
+  # `snake_case` into words, so most identifiers read as English.
+  - repo: https://github.com/streetsidesoftware/cspell-cli
+    rev: v10.3.0
+    hooks:
+      - id: cspell
+        name: cspell (markdown)
+        language_version: "22.23.2"
+        types: [markdown]
+      - id: cspell
+        name: cspell (python)
+        language_version: "22.23.2"
+        types: [python]
+        files: ^(src/|protected_files\.py$)
+
+  # The workflows hold the repository's only credentials, so they get a linter
+  # (actionlint), a security audit (zizmor) and schema checks.
+  - repo: https://github.com/Mateusz-Grzelinski/actionlint-py
+    rev: v1.7.12.25
+    hooks:
+      # actionlint runs shellcheck over `run:` blocks only when it is installed.
+      # ubuntu-latest has it, so without it here a clean local run could fail in CI.
+      - id: actionlint
+        additional_dependencies: [shellcheck-py==0.11.0.1]
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.31.1
+    hooks:
+      - id: zizmor
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.38.2
+    hooks:
+      - id: check-github-workflows
+      - id: check-dependabot
+
+  # `DECISIONS.md` and the research report are append-only (ADR-002). This runs at
+  # commit-msg, the only stage that sees both the index and the subject about to be
+  # recorded, and the subject is where `[in-place]` takes the typo exception.
+  - repo: local
+    hooks:
+      - id: protected-files
+        name: protected files are append-only
+        entry: uv run --no-sync python protected_files.py
+        language: system
+        stages: [commit-msg]
+
+  # Commit messages are one line and a Conventional Commit. Why a change was made
+  # belongs in the pull request or `DECISIONS.md`, which outlive a log line. A body
+  # is also where an attribution trailer would go.
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+  - repo: local
+    hooks:
+      - id: one-line-commit-message
+        name: commit message is one line
+        language: pygrep
+        # A subject, then blank or comment lines only. Anything else is a body. Git
+        # ignores everything after its scissors line (`git commit -v` puts the diff
+        # there), so the search stops at it.
+        entry: '\A[^\n]*\n(?:[ \t]*\n|#(?! -+ >8 -+\n)[^\n]*\n)*[ \t]*[^#\s]'
+        args: [--multiline]
+        stages: [commit-msg]
