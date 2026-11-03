@@ -1,6 +1,6 @@
 # One-time setup after cloning:
 #   uv sync --locked
-#   uv run --no-sync pre-commit install --hook-type pre-commit --hook-type commit-msg
+#   uv run --no-sync pre-commit install
 #
 # CI runs `pre-commit run --all-files` over this file as the `pre-commit gate` job, and
 # runs the commit-msg hooks over every commit of a pull request as `commit messages`.
@@ -10,8 +10,14 @@
 # Each rev was at least seven days old when pinned. Dependabot moves them after the same
 # seven-day cooldown the uv lock uses (ADR-002).
 #
+# A plain `pre-commit install` installs both hook types.
+default_install_hook_types: [pre-commit, commit-msg]
 # A hook with no `stages` would otherwise also run against the commit message.
 default_stages: [pre-commit, manual]
+# The Node that pre-commit provisions for the markdown hooks. Pinned, because the
+# cspell and markdownlint releases here refuse the Node 18 that Ubuntu 24.04 ships.
+default_language_version:
+  node: "22.23.2"
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -78,13 +84,11 @@ repos:
         pass_filenames: false
 
   # Markdown lint. Rules live in `.markdownlint-cli2.yaml`, so a bare
-  # `markdownlint-cli2` run and this hook agree. pre-commit provisions its own Node,
-  # pinned because the cspell and markdownlint releases here refuse Node 18.
+  # `markdownlint-cli2` run and this hook agree.
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.23.3
     hooks:
       - id: markdownlint-cli2
-        language_version: "22.23.2"
 
   # Spelling, in British English. The dictionary lives in `cspell.json`, so the editor
   # extension agrees. The Python run reads docstrings and comments, and cspell splits
@@ -94,11 +98,9 @@ repos:
     hooks:
       - id: cspell
         name: cspell (markdown)
-        language_version: "22.23.2"
         types: [markdown]
       - id: cspell
         name: cspell (python)
-        language_version: "22.23.2"
         types: [python]
         files: ^(src/|protected_files\.py$)
 

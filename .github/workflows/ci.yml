@@ -11,6 +11,11 @@ on:
 permissions:
   contents: read
 
+# `bash` by name runs with `pipefail`, which the default shell does not.
+defaults:
+  run:
+    shell: bash
+
 # A newer push to a pull request makes its running checks moot. A run on `main` is
 # the record of what landed, so each push there gets a group of its own, where nothing
 # can cancel it or replace it while it waits.
@@ -30,10 +35,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # Pinned, because an unset version installs whatever uv released last.
+      # Pinned in `.tool-versions`, because an unset version installs whatever uv
+      # released last.
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          version: "0.11.15"
+          version-file: .tool-versions
       - run: uv sync --locked
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -52,7 +58,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          version: "0.11.15"
+          version-file: .tool-versions
       - run: uv sync --locked
       # What `--cov` measures and the floor it enforces live in `pyproject.toml`, so a
       # local `pytest --cov` judges the same way.
@@ -78,7 +84,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          version: "0.11.15"
+          version-file: .tool-versions
       - run: uv sync --locked
       # The same commit-msg hooks a local commit runs, so the rule has one source.
       # Merge commits are skipped because GitHub and `git merge` write their subjects.
