@@ -1,0 +1,173 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  # `edited` so a retitled pull request has its title checked again.
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+# Every job only reads the repository.
+permissions:
+  contents: read
+
+# `bash` by name runs with `pipefail`, which the default shell does not.
+defaults:
+  run:
+    shell: bash
+
+# A newer push to a pull request makes its running checks moot. A run on `main` is
+# the record of what landed, so each push there gets a group of its own, where nothing
+# can cancel it or replace it while it waits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# The ruleset on `main` requires all four jobs by name (ADR-2026-11-03-repository-gate).
+# Renaming one leaves every pull request waiting on a check that never reports, so the
+# ruleset changes with it.
+jobs:
+  gate:
+    name: pre-commit gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Pinned in `.tool-versions`, because an unset version installs whatever uv
+      # released last.
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version-file: .tool-versions
+      - run: uv sync --locked
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: pre-commit
+        run: uv run --no-sync pre-commit run --all-files --show-diff-on-failure
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version-file: .tool-versions
+      - run: uv sync --locked
+      # What `--cov` measures and the floor it enforces live in `pyproject.toml`, so a
+      # local `pytest --cov` judges the same way.
+      - name: pytest + coverage gate
+        run: uv run --no-sync pytest --cov
+
+  commits:
+    name: commit messages
+    # Dependabot writes a body into every commit. Skipped counts as passed for a
+    # required check, so its pull requests can still merge.
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # The pull request's own head, with full history, so its commits can be listed
+      # against the base branch. The default checkout is a merge commit GitHub made.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version-file: .tool-versions
+      - run: uv sync --locked
+      # The same commit-msg hooks a local commit runs, so the rule has one source.
+      # Merge commits are skipped because GitHub and `git merge` write their subjects.
+      # `protected-files` is skipped because the `append-only` job owns it.
+      #
+      # The hooks let `#` lines through, because a local commit runs them while git's
+      # own template is still in the file. A stored commit has no template, so any
+      # body it has is refused here directly.
+      - name: every commit passes the commit-msg hooks
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          SKIP: protected-files
+        run: |
+          # Assigned first, so a failing rev-list stops the step instead of
+          # looping over nothing and passing.
+          shas=$(git rev-list --no-merges --reverse HEAD --not "origin/$BASE_REF")
+          if [ -z "$shas" ]; then
+            echo "::error::found no commits to check against origin/$BASE_REF"
+            exit 1
+          fi
+          status=0
+          for sha in $shas; do
+            git log -1 --format=%B "$sha" > "$RUNNER_TEMP/message"
+            if ! uv run --no-sync pre-commit run --hook-stage commit-msg \
+                --commit-msg-filename "$RUNNER_TEMP/message"; then
+              echo "::error::$(git log -1 --format='%h %s' "$sha")"
+              status=1
+            fi
+            if [ -n "$(git log -1 --format=%b "$sha")" ]; then
+              echo "::error::$(git log -1 --format='%h' "$sha") has a body"
+              status=1
+            fi
+          done
+          exit "$status"
+      # A merge or squash commit on `main` takes the pull request's title as its
+      # whole message, so the title follows the same rules as a commit.
+      - name: the pull request title passes the commit-msg hooks
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+          SKIP: protected-files
+        run: |
+          printf '%s\n' "$TITLE" > "$RUNNER_TEMP/title"
+          uv run --no-sync pre-commit run --hook-stage commit-msg \
+            --commit-msg-filename "$RUNNER_TEMP/title"
+
+  append-only:
+    name: append-only
+    # On a push to `main` the merge base is the commit itself, so there would be
+    # nothing to compare.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # Full history: the check compares the pull request against its merge base with
+      # the base branch, and a shallow clone has the files without the graph to find
+      # it in.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # The check refuses to pass rather than compare nothing, so a fetch that stopped
+      # working fails here loudly.
+      - name: fetch the base branch
+        run: |
+          git fetch --no-tags origin \
+            "+refs/heads/${GITHUB_BASE_REF:-main}:refs/remotes/origin/${GITHUB_BASE_REF:-main}"
+      # Standard library only, so there is no environment to build. With no message
+      # file the check reads `[in-place]` from the subjects already on the branch, so
+      # an exception the commit-msg hook allowed is not refused here.
+      #
+      # The base branch's copy judges the pull request, so a change can't loosen the
+      # rule it is judged by, for instance by taking a path off the list while
+      # rewriting that file. A base with no copy yet runs the pull request's.
+      - name: no landed line is rewritten
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          # A missing base fails here, rather than reading as a base with no copy.
+          git rev-parse --quiet --verify "origin/$BASE_REF^{commit}" > /dev/null
+          if git cat-file -e "origin/$BASE_REF:protected_files.py" 2> /dev/null; then
+            git show "origin/$BASE_REF:protected_files.py" > "$RUNNER_TEMP/protected_files.py"
+            python3 "$RUNNER_TEMP/protected_files.py"
+          else
+            echo "::notice::origin/$BASE_REF has no protected_files.py yet, so this pull request's copy runs"
+            python3 protected_files.py
+          fi

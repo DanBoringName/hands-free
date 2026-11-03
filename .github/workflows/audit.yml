@@ -1,0 +1,49 @@
+name: audit
+
+# Checks the locked dependencies against the OSV vulnerability database
+# (ADR-2026-11-03-repository-gate). It runs when the lock changes, and weekly, because
+# an advisory against a package already in the lock arrives with no change here to start
+# a run.
+on:
+  # `uv.lock` alone covers a dependency edit. One that does not reach the lock fails
+  # `uv sync --locked` in CI before anything else runs.
+  pull_request:
+    paths: [uv.lock, .github/workflows/audit.yml]
+  push:
+    branches: [main]
+    paths: [uv.lock, .github/workflows/audit.yml]
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version-file: .tool-versions
+      # `uv audit` is experimental, and `--preview-features audit` acknowledges it. A
+      # change to its interface shows here as a red run.
+      #
+      # Two steps, so a failure says whom it reaches. The first covers what the
+      # switchboard runs with, and passes having checked nothing until it declares a
+      # dependency. The second adds the development tools, which reach only this
+      # repository.
+      - name: runtime dependencies
+        run: uv audit --locked --preview-features audit --no-dev
+      - name: the whole lock
+        if: ${{ !cancelled() }}
+        run: uv audit --locked --preview-features audit

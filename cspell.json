@@ -1,0 +1,55 @@
+{
+  "version": "0.2",
+  "language": "en-GB",
+  "ignorePaths": [
+    ".git/**",
+    ".venv/**",
+    ".remember/**",
+    ".claude/**",
+    "uv.lock"
+  ],
+  "words": [
+    "anthropics",
+    "Cowork",
+    "cpomdp",
+    "CUDA",
+    "CVSD",
+    "docstrings",
+    "Groq",
+    "Kokoro",
+    "linted",
+    "Mumla",
+    "pymumble",
+    "pyproject",
+    "pytest",
+    "shellcheck",
+    "Silero",
+    "tailnet",
+    "textconv",
+    "venv",
+    "zizmor"
+  ],
+  "overrides": [
+    {
+      "filename": "research/**",
+      "words": [
+        "dictare",
+        "dragfly",
+        "Eule",
+        "Keule",
+        "Kiril",
+        "mbailey",
+        "mbush",
+        "Mycroft",
+        "Nabu",
+        "Peyanski",
+        "pypi",
+        "Taku",
+        "Vapi",
+        "voicec",
+        "voicemode",
+        "yepher"
+      ]
+    }
+  ]
+}

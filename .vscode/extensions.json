@@ -1,0 +1,21 @@
+{
+  // Recommended, not required. Enforcement lives in pre-commit and CI, so any editor
+  // works.
+  "recommendations": [
+    // Python: lint and format (the same ruff the hooks run), types and the test runner.
+    "charliermarsh.ruff",
+    "ms-python.python",
+    "astral-sh.ty",
+
+    // The config files: pyproject.toml, and the YAML behind pre-commit and CI.
+    "tamasfe.even-better-toml",
+    "redhat.vscode-yaml",
+
+    // Docs: markdown linting and spelling, reading the repository's own configs.
+    "DavidAnson.vscode-markdownlint",
+    "streetsidesoftware.code-spell-checker",
+
+    // The workflows under .github/workflows.
+    "github.vscode-github-actions"
+  ]
+}

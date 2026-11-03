@@ -1,0 +1,31 @@
+name: Task
+description: Planned work that one pull request can close.
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What is true now, and why it needs to change.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      description: >-
+        Checkboxes a reviewer can tick from the diff, the tests or a recorded check on
+        the phone. A phase from the research report brings its kill test here.
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
