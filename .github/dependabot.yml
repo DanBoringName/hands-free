@@ -1,0 +1,53 @@
+# Version updates for the lock, the pre-commit hooks and the workflow actions (ADR-002).
+# Security updates are a repository setting, and they open as advisories are published
+# rather than on this schedule.
+version: 2
+
+updates:
+  # `lockfile-only`, because the lock is what runs. The ranges in `pyproject.toml` say
+  # which versions the code is known to work with, and they move by hand.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: monthly
+    versioning-strategy: lockfile-only
+    cooldown:
+      default-days: 7
+    groups:
+      lock:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: chore
+      include: scope
+
+  # The `rev` of each remote hook in `.pre-commit-config.yaml`. ruff and ty have no
+  # entry here, because their hooks run the locked versions and the `uv` entry moves
+  # them.
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      hooks:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: chore
+
+  # Every action is pinned to a commit SHA, so these updates are the only way the pins
+  # move. A major bump arrives on its own.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    commit-message:
+      prefix: ci
