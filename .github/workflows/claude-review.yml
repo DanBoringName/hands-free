@@ -80,7 +80,7 @@ jobs:
       # A failed review shows red and gates nothing, because the ruleset does not
       # require this job. Silent success would be worse: a review that dies on its turn
       # budget would otherwise report green.
-      - uses: anthropics/claude-code-action@8041f1d17e0e7d2f2cfe35002962e9f26237c0bb # v1.0.263
+      - uses: anthropics/claude-code-action@d70510b174a1244958df0b03166a54912811f3e6 # v1.0.264
         if: ${{ steps.pr.outputs.reviewable == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -219,7 +219,7 @@ jobs:
             echo "reviewable=true" >> "$GITHUB_OUTPUT"
           fi
           rm -f review.md
-      - uses: anthropics/claude-code-action@8041f1d17e0e7d2f2cfe35002962e9f26237c0bb # v1.0.263
+      - uses: anthropics/claude-code-action@d70510b174a1244958df0b03166a54912811f3e6 # v1.0.264
         if: ${{ steps.pr.outputs.reviewable == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
