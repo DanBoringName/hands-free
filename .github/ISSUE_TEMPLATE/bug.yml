@@ -1,0 +1,41 @@
+name: Bug
+description: Something in the switchboard or around it does not do what it should.
+labels: [bug]
+body:
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Phone, headset or voice room
+        - Speech to text or text to speech
+        - Routing, coordinator or workers
+        - Repository or CI
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have happened
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What was said, to which session, and on which phone and headset.
+  - type: textarea
+    id: log
+    attributes:
+      label: Log lines
+      description: >-
+        The switchboard's lines around the failure. This repository is public, so
+        remove any line that shows a personal path, a token or a transcript you would
+        not publish.
+      render: text
