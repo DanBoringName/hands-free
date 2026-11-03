@@ -38,7 +38,9 @@ updates:
       prefix: chore
 
   # Every action is pinned to a commit SHA, so these updates are the only way the pins
-  # move. A major bump arrives on its own.
+  # move. A major bump arrives on its own. The Claude action has a group of its own,
+  # because its update is the one the dependency review skips, and grouped with the
+  # others it would take their reviews with it.
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -46,8 +48,12 @@ updates:
     cooldown:
       default-days: 7
     groups:
+      claude-action:
+        patterns: ["anthropics/claude-code-action"]
+        update-types: [minor, patch]
       actions:
         patterns: ["*"]
+        exclude-patterns: ["anthropics/claude-code-action"]
         update-types: [minor, patch]
     commit-message:
       prefix: ci
