@@ -4,13 +4,15 @@ Hands-free voice for a fleet of Claude Code sessions, from a phone in a pocket w
 
 The phone stays on an open-mic voice call to the desktop. A switchboard daemon in WSL listens to the call and transcribes what I say. It routes each utterance by the session name it opens with and speaks the replies back into the call. Anything said without a name goes to a coordinator Claude Code session, which hands work to the named sessions and reports back on what they did.
 
-Nothing here runs yet. The first step is a kill test of screen-off capture from a Bluetooth headset mic, and the transport changes if the phone fails it. `DECISIONS.md` has the design (ADR-2026-11-03-voice-room-switchboard) and what would reverse it.
+The switchboard doesn't exist yet. What runs is Phase 0, a kill test of screen-off capture from a Bluetooth headset mic, and the transport changes if the phone fails it. `hands-free murmur` runs the room the phone joins, and `hands-free kill-test` judges a run from Murmur's log and a recording of the room. `research/phase-0-kill-test.md` has the protocol. `DECISIONS.md` has the design (ADR-2026-11-03-voice-room-switchboard) and what would reverse it.
 
 ## Where things are
 
 | Path | What it holds |
 | --- | --- |
 | `research/voice-room-switchboard.md` | The research behind the design: what existing products do, the Android limits, the ranked architectures and the phased build plan. Written in October 2026. |
+| `research/phase-0-kill-test.md` | The Phase 0 kill test: what it decides, how each check is measured, the protocol, and each run's result. Append-only, like the research report. |
+| `src/hands_free/` | The `hands-free` command. `murmur.py` and `murmur.ini` run the room, and `kill_test/` judges a run. |
 | `DECISIONS.md` | Architecture decisions, append-only. |
 | `CHANGELOG.md` | What changed, by release. |
 | `CONTRIBUTING.md` | Setup, the gate and the rules it enforces. |

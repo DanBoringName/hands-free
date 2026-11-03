@@ -34,6 +34,7 @@ from pathlib import Path
 PROTECTED_PATHS = (
     "DECISIONS.md",
     "research/voice-room-switchboard.md",
+    "research/phase-0-kill-test.md",
 )
 """The files whose landed lines may not be rewritten.
 

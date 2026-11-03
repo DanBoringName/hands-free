@@ -13,6 +13,12 @@ dist/
 .coverage.*
 htmlcov/
 
+# Kill-test recordings carry a voice, and stay out of the repository.
+*.wav
+*.flac
+*.ogg
+*.opus
+
 # Editors and OS
 .vscode/settings*
 .idea/

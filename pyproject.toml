@@ -7,7 +7,19 @@ license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "DanBoringName" }]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    # The kill test's audio analysis: gaps and the band edge of a recording.
+    "numpy>=2.5",
+]
+
+[project.scripts]
+hands-free = "hands_free.cli:main"
+
+# uv's own backend, on the same minor line as the uv in `.tool-versions`, so the two
+# move together by hand.
+[build-system]
+requires = ["uv_build>=0.11.15,<0.12"]
+build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
@@ -20,11 +32,10 @@ dev = [
     "ty>=0.0.92",
 ]
 
-# The root holds the development environment and the repository's own checks. The
-# switchboard arrives as a package with the first phase that needs code
-# (ADR-2026-11-03-repository-gate).
+# The root is the `hands_free` package in `src/`, which arrived with Phase 0's kill test,
+# the first phase that needed code (ADR-2026-11-03-repository-gate). It also holds the
+# development environment and the repository's own checks.
 [tool.uv]
-package = false
 # The oldest uv checked against the relative `exclude-newer` below.
 required-version = ">=0.11.15"
 # A version reaches the lock once it has been on the index for seven days, whether by
@@ -73,10 +84,10 @@ testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-ra"
 
-# `pytest --cov` measures these and enforces the floor, locally and in CI alike. The
-# switchboard's package joins `source` when it lands (ADR-2026-11-03-repository-gate).
+# `pytest --cov` measures these and enforces the floor, locally and in CI alike
+# (ADR-2026-11-03-repository-gate).
 [tool.coverage.run]
-source = ["protected_files"]
+source = ["protected_files", "hands_free"]
 branch = true
 
 [tool.coverage.report]
