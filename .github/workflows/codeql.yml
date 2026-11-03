@@ -1,9 +1,9 @@
 name: CodeQL
 
-# Static analysis of the Python and of the workflows themselves (ADR-002). A workflow
-# here rather than GitHub's default setup, so its configuration is in the diff and it
-# runs on the pull request that changes it. The weekly run picks up new queries against
-# code that has not changed.
+# Static analysis of the Python and of the workflows themselves
+# (ADR-2026-11-03-repository-gate). A workflow here rather than GitHub's default setup,
+# so its configuration is in the diff and it runs on the pull request that changes it.
+# The weekly run picks up new queries against code that has not changed.
 on:
   push:
     branches: [main]

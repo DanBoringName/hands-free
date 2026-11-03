@@ -4,7 +4,7 @@ Hands-free voice for a fleet of Claude Code sessions, from a phone in a pocket w
 
 The phone stays on an open-mic voice call to the desktop. A switchboard daemon in WSL listens to the call and transcribes what I say. It routes each utterance by the session name it opens with and speaks the replies back into the call. Anything said without a name goes to a coordinator Claude Code session, which hands work to the named sessions and reports back on what they did.
 
-Nothing here runs yet. The first step is a kill test of screen-off capture from a Bluetooth headset mic, and the transport changes if the phone fails it. `DECISIONS.md` has the design (ADR-001) and what would reverse it.
+Nothing here runs yet. The first step is a kill test of screen-off capture from a Bluetooth headset mic, and the transport changes if the phone fails it. `DECISIONS.md` has the design (ADR-2026-11-03-voice-room-switchboard) and what would reverse it.
 
 ## Where things are
 
@@ -22,7 +22,7 @@ The gate is pre-commit, and CI runs the same hooks. Install them once after clon
 
 ```bash
 uv sync --locked
-uv run --no-sync pre-commit install --hook-type pre-commit --hook-type commit-msg
+uv run --no-sync pre-commit install
 ```
 
 Run the whole gate and the tests before pushing:

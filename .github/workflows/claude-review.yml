@@ -138,7 +138,7 @@ jobs:
           # Opus on the first review, which reads the whole diff, and Sonnet on each
           # later push. A manual re-run replays the original event, so a re-run of the
           # opening review is an Opus one. `opus` and `sonnet` are Claude Code's
-          # aliases for the newest of each (ADR-002).
+          # aliases for the newest of each (ADR-2026-11-03-repository-gate).
           claude_args: >-
             --model ${{ (github.event.action == 'opened' || github.event_name ==
             'workflow_dispatch') && 'opus' || 'sonnet' }}

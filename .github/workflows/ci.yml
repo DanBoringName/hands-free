@@ -23,9 +23,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# The ruleset on `main` requires all four jobs by name (ADR-002). Renaming one leaves
-# every pull request waiting on a check that never reports, so the ruleset changes
-# with it.
+# The ruleset on `main` requires all four jobs by name (ADR-2026-11-03-repository-gate).
+# Renaming one leaves every pull request waiting on a check that never reports, so the
+# ruleset changes with it.
 jobs:
   gate:
     name: pre-commit gate

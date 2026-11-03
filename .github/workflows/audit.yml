@@ -1,8 +1,9 @@
 name: audit
 
-# Checks the locked dependencies against the OSV vulnerability database (ADR-002). It
-# runs when the lock changes, and weekly, because an advisory against a package already
-# in the lock arrives with no change here to start a run.
+# Checks the locked dependencies against the OSV vulnerability database
+# (ADR-2026-11-03-repository-gate). It runs when the lock changes, and weekly, because
+# an advisory against a package already in the lock arrives with no change here to start
+# a run.
 on:
   # `uv.lock` alone covers a dependency edit. One that does not reach the lock fails
   # `uv sync --locked` in CI before anything else runs.

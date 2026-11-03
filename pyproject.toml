@@ -21,13 +21,14 @@ dev = [
 ]
 
 # The root holds the development environment and the repository's own checks. The
-# switchboard arrives as a package with the first phase that needs code (ADR-002).
+# switchboard arrives as a package with the first phase that needs code
+# (ADR-2026-11-03-repository-gate).
 [tool.uv]
 package = false
 # The oldest uv checked against the relative `exclude-newer` below.
 required-version = ">=0.11.15"
 # A version reaches the lock once it has been on the index for seven days, whether by
-# hand or through Dependabot, whose cooldown matches (ADR-002).
+# hand or through Dependabot, whose cooldown matches (ADR-2026-11-03-repository-gate).
 exclude-newer = "7 days"
 
 [tool.ruff]
@@ -49,7 +50,7 @@ select = [
     "TID",  # flake8-tidy-imports
     "PERF", # perflint
     "RUF",  # ruff-specific rules
-    "S",    # flake8-bandit, since spoken words end up as commands (ADR-002)
+    "S",    # flake8-bandit, since spoken words end up as commands
     "D",    # pydocstyle, docstrings on everything outside the tests
 ]
 ignore = [
@@ -73,7 +74,7 @@ pythonpath = ["."]
 addopts = "-ra"
 
 # `pytest --cov` measures these and enforces the floor, locally and in CI alike. The
-# switchboard's package joins `source` when it lands (ADR-002).
+# switchboard's package joins `source` when it lands (ADR-2026-11-03-repository-gate).
 [tool.coverage.run]
 source = ["protected_files"]
 branch = true

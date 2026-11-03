@@ -8,7 +8,7 @@
 # is checked in CI alone.
 #
 # Each rev was at least seven days old when pinned. Dependabot moves them after the same
-# seven-day cooldown the uv lock uses (ADR-002).
+# seven-day cooldown the uv lock uses (ADR-2026-11-03-repository-gate).
 #
 # A plain `pre-commit install` installs both hook types.
 default_install_hook_types: [pre-commit, commit-msg]
@@ -123,9 +123,10 @@ repos:
       - id: check-github-workflows
       - id: check-dependabot
 
-  # `DECISIONS.md` and the research report are append-only (ADR-002). This runs at
-  # commit-msg, the only stage that sees both the index and the subject about to be
-  # recorded, and the subject is where `[in-place]` takes the typo exception.
+  # `DECISIONS.md` and the research report are append-only
+  # (ADR-2026-11-03-repository-gate). This runs at commit-msg, the only stage that sees
+  # both the index and the subject about to be recorded, and the subject is where
+  # `[in-place]` takes the typo exception.
   - repo: local
     hooks:
       - id: protected-files

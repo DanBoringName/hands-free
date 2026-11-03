@@ -1,6 +1,6 @@
-# Version updates for the lock, the pre-commit hooks and the workflow actions (ADR-002).
-# Security updates are a repository setting, and they open as advisories are published
-# rather than on this schedule.
+# Version updates for the lock, the pre-commit hooks and the workflow actions
+# (ADR-2026-11-03-repository-gate). Security updates are a repository setting, and they
+# open as advisories are published rather than on this schedule.
 version: 2
 
 updates:

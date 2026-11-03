@@ -14,10 +14,10 @@ The project uses [uv](https://docs.astral.sh/uv/). Once you've cloned it:
 
 ```bash
 uv sync --locked
-uv run --no-sync pre-commit install --hook-type pre-commit --hook-type commit-msg
+uv run --no-sync pre-commit install
 ```
 
-The second line wires up the git hooks. You only do it once. After that the checks run every time you commit, so you find problems before CI does.
+The second line wires up the git hooks, both the ones that check your files and the ones that check your commit message. You only do it once. After that the checks run every time you commit, so you find problems before CI does.
 
 ## How the rules are enforced
 
@@ -45,9 +45,13 @@ So a commit that's green locally passes the same hooks in CI. The pull request t
 
 `DECISIONS.md` and `research/voice-room-switchboard.md` are records of what was known when. A reader of them can tell a claim made before a result existed from one made after, and an in-place edit destroys that without leaving a trace.
 
-So corrections, qualifications and new results go in as a new dated entry. In `DECISIONS.md` that is a new ADR, numbered at landing, which names the one it supersedes. The superseded line keeps its place.
+So corrections, qualifications and new results go in as a new dated entry. In `DECISIONS.md` that is a new ADR, which names the one it supersedes. The superseded line keeps its place. An amendment to the research report goes in the section it corrects, which is why the check allows an inserted line and refuses a removed or rewritten one.
 
-`protected_files.py` holds the list and does the checking. The commit-msg hook runs it over your index, and the `append-only` CI job runs it over the whole pull request. It compares against the merge base with the branch you're landing on, so a block you add and then rework on your own branch is left alone.
+An ADR is named `ADR-YYYY-MM-DD-slug`, from the ISO date you write it and a few words on what it decides, such as `ADR-2026-11-03-repository-gate`. Name it when you start drafting. The name doesn't change when the pull request lands, so two branches writing ADRs at the same time can't end up with the same number.
+
+`protected_files.py` holds the list and does the checking. The commit-msg hook runs it over your index, and the `append-only` CI job runs `main`'s copy of it over the whole pull request. It compares against the merge base with the branch you're landing on, so a block you add and then rework on your own branch is left alone. Merging `main` into your branch brings its landed corrections with it.
+
+Locally the check assumes you're landing on `main`. On a branch stacked on another, it will refuse a change that CI, which knows the real base, would allow. Commit with `GITHUB_BASE_REF=<the branch below> git commit` and it judges the way CI does.
 
 Typos and broken markdown are the exception, and even then not a number, a date, a claim or a result. Put `[in-place]` in the subject of a commit on the branch to take it.
 
@@ -59,7 +63,7 @@ Claude reviews each pull request and posts one comment, tagging each finding as 
 
 ## Dependencies
 
-A version reaches `uv.lock` once it has been on the index for seven days. `[tool.uv] exclude-newer` enforces that for every `uv lock`, and Dependabot waits the same seven days before proposing an update. Dependabot moves only the packages `pyproject.toml` names, so the rest of the lock moves with an occasional `uv lock --upgrade`. `audit.yml` checks the lock with `uv audit` when it changes and every Monday. A security fix that can't wait goes in through `exclude-newer-package` for that one package, so the exception shows in the diff. ADR-002 has the reasoning.
+A version reaches `uv.lock` once it has been on the index for seven days. `[tool.uv] exclude-newer` enforces that for every `uv lock`, and Dependabot waits the same seven days before proposing an update. Dependabot moves only the packages `pyproject.toml` names, so the rest of the lock moves with an occasional `uv lock --upgrade`. `audit.yml` checks the lock with `uv audit` when it changes and every Monday. A security fix that can't wait goes in through `exclude-newer-package` for that one package, so the exception shows in the diff. ADR-2026-11-03-repository-gate has the reasoning.
 
 ## Running things by hand
 

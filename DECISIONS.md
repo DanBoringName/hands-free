@@ -1,14 +1,15 @@
 # Architecture Decisions
 
-Decisions are append-only. Each one records what was chosen and why, with its date. A correction or a change of mind is a new ADR that names the one it replaces, and `protected_files.py` refuses an edit to a line that has already landed.
+Decisions are append-only. Each one records what was chosen and why. A correction or a change of mind is a new ADR that names the one it replaces, and `protected_files.py` refuses an edit to a line that has already landed.
+
+An ADR is named `ADR-YYYY-MM-DD-slug`, from the ISO date it was written and a few words on what it decides. The name is fixed when the ADR is drafted and doesn't change when it lands, so ADRs written on branches in parallel can't claim the same number. Two ADRs never share a slug.
 
 A path inside an ADR is the path as of that ADR's date. `CHANGELOG.md` is where a path goes when it moves.
 
 ---
 
-## ADR-001 — a voice-room switchboard with one coordinator Claude
+## ADR-2026-11-03-voice-room-switchboard — a voice-room switchboard with one coordinator Claude
 
-**Date:** 2026-11-03
 **Status:** Accepted, until the Phase 0 kill test says otherwise
 **Evidence:** `research/voice-room-switchboard.md`
 
@@ -45,9 +46,8 @@ If channels change shape or leave the research preview badly, the workers move t
 
 ---
 
-## ADR-002 — the repository gate
+## ADR-2026-11-03-repository-gate — the repository gate
 
-**Date:** 2026-11-03
 **Status:** Accepted
 
 ### Decision
@@ -58,7 +58,7 @@ Every hook runs locally from pre-commit and again in CI, so a commit that passes
 
 Commit messages are one line and a Conventional Commit. Why a change was made belongs in the pull request or here, since both outlive a log line.
 
-This file and the research report are append-only. `protected_files.py` enforces it at commit-msg time and again in the `append-only` job. The check compares against the merge base, so a block drafted and reworked on a branch is left alone until it lands.
+This file and the research report are append-only. `protected_files.py` enforces it at commit-msg time and again in the `append-only` job, which runs the base branch's copy of the check, so a pull request can't loosen the rule it is judged by. The check compares against the merge base, so a block drafted and reworked on a branch is left alone until it lands. It refuses a removed or rewritten line and leaves an inserted one alone, because an amendment goes in the section it corrects. Every diff is read as text, so a binary attribute or a textconv driver can't hide a rewrite.
 
 Dependencies wait seven days. `[tool.uv] exclude-newer = "7 days"` holds the lock to versions that have been on the index that long, and Dependabot's seven-day cooldown matches it so that it doesn't propose a version uv would refuse. Dependabot proposes grouped minor and patch updates once a month for the lock, the hook revisions and the action pins, and a major update arrives on its own. `audit.yml` runs `uv audit` against the OSV database when the lock changes and every Monday, because an advisory against a package already in the lock arrives with no change to start a run. Dependabot alerts and security updates, secret scanning with push protection and private vulnerability reporting are switched on. CodeQL scans the Python and the workflows on each pull request.
 
@@ -71,9 +71,11 @@ There is one interpreter, Python 3.12, named in `.python-version`. The switchboa
 ### Consequences
 
 - `CLAUDE_CODE_OAUTH_TOKEN` has to be stored in both the Actions and the Dependabot secret stores. A run Dependabot starts reads only the second.
-- A pull request that changes `claude-review.yml` is not reviewed, because the action skips a run whose copy of the workflow differs from the one on `main`. That includes the pull request that adds it. Dependabot's review passes its own token and so avoids that skip, apart from an update to the Claude action itself, which would otherwise run with the OAuth token before anyone had read it.
+- A pull request that changes `claude-review.yml` is not reviewed, because the action skips a run whose copy of the workflow differs from the one on `main`. That includes the pull request that adds it.
+- Dependabot's review passes its own token, so that skip doesn't reach it. It fetches the pull request with git rather than `actions/checkout`, which leaves the Claude action as the only action that runs beside the OAuth token. An update to the Claude action itself is not reviewed, because the new release would run with the token before anyone had read it. Dependabot gives that update a group of its own, so it takes no other update's review with it.
+- The review jobs don't log their full output. The repository is public, and the log would carry every tool call and what it returned.
 - Dependabot's `uv` entry moves the packages `pyproject.toml` names. A package that only another package requires moves when `uv lock --upgrade` is run by hand, or when an advisory turns the Monday audit red.
-- The uv version CI installs, the Node version under the markdown hooks and shellcheck-py inside the actionlint hook have no Dependabot ecosystem, so they move by hand. `required-version` moves with the first.
+- The uv version CI installs (`.tool-versions`), the Node version under the markdown hooks (`default_language_version`) and shellcheck-py inside the actionlint hook have no Dependabot ecosystem, so they move by hand. Each is pinned in one place. `required-version` is the oldest uv the relative `exclude-newer` was checked against, and moves only when that check is made again.
 - A security fix younger than seven days can't reach the lock either. It goes in by hand through `exclude-newer-package` for that one package, which names the exception in the diff.
 - `uv audit` is experimental and needs `--preview-features audit`. A change to its interface shows as a red audit run.
 - The deny rules in `.claude/settings.json` guard against an accidental merge. They are not a security boundary, and the ruleset allows a merge with no approvals because I open pull requests from the same account.
