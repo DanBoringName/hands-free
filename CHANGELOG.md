@@ -12,3 +12,4 @@ Everything worth noting lands here. The format follows [Keep a Changelog](https:
 - Claude reviews of each pull request, and of Dependabot's against the release notes.
 - Tests for the pattern hooks, against the messages and paths each must refuse and the ones each must pass.
 - Issue forms, a pull request template and a security policy.
+- Phase 0's kill test. The root project is now the `hands_free` package in `src/`, with a `hands-free` command. `hands-free murmur` runs Murmur from the tracked `src/hands_free/murmur.ini`, with the database and the server password kept outside the repository. `hands-free kill-test` judges a run from Murmur's log and the Mumble client's recording: whether the connection dropped, whether the audio had gaps, and whether the band stops where Bluetooth's hands-free profile stops it. `research/phase-0-kill-test.md` holds the protocol and each run's result, and is append-only.

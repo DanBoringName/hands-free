@@ -43,9 +43,9 @@ So a commit that's green locally passes the same hooks in CI. The pull request t
 
 ## Protected files
 
-`DECISIONS.md` and `research/voice-room-switchboard.md` are records of what was known when. A reader of them can tell a claim made before a result existed from one made after, and an in-place edit destroys that without leaving a trace.
+`DECISIONS.md` and the reports in `research/` are records of what was known when. A reader of them can tell a claim made before a result existed from one made after, and an in-place edit destroys that without leaving a trace.
 
-So corrections, qualifications and new results go in as a new dated entry. In `DECISIONS.md` that is a new ADR, which names the one it supersedes. The superseded line keeps its place. An amendment to the research report goes in the section it corrects, which is why the check allows an inserted line and refuses a removed or rewritten one.
+So corrections, qualifications and new results go in as a new dated entry. In `DECISIONS.md` that is a new ADR, which names the one it supersedes. The superseded line keeps its place. An amendment to a research report goes in the section it corrects, which is why the check allows an inserted line and refuses a removed or rewritten one. A kill test's runs go at the end of its record.
 
 An ADR is named `ADR-YYYY-MM-DD-slug`, from the ISO date you write it and a few words on what it decides, such as `ADR-2026-11-03-repository-gate`. Name it when you start drafting. The name doesn't change when the pull request lands, so two branches writing ADRs at the same time can't end up with the same number.
 
