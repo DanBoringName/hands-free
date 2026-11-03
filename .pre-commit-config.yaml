@@ -94,7 +94,7 @@ repos:
   # extension agrees. The Python run reads docstrings and comments, and cspell splits
   # `snake_case` into words, so most identifiers read as English.
   - repo: https://github.com/streetsidesoftware/cspell-cli
-    rev: v10.3.0
+    rev: v10.4.0
     hooks:
       - id: cspell
         name: cspell (markdown)
