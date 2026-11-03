@@ -43,12 +43,16 @@ repos:
       - id: no-personal-paths
         name: no Windows user folder or home directory
         language: pygrep
-        # Case-insensitive, either separator, and separators may be doubled as in a
-        # string literal. A home directory needs no trailing slash, so `$HOME` written
-        # out and a `\\wsl.localhost` path are caught too.
-        entry: '(?i)[a-z]:[\\/]+users[\\/]+(?![\\/]*public[\\/])|/mnt/[a-z]/users/(?!public/)|[\\/]home[\\/]+(?!runner(?![a-z0-9_.-]))[a-z_][a-z0-9_.-]*'
+        # Case-insensitive, and separators may be doubled as in a string literal. A
+        # home directory needs no trailing slash, so `$HOME` written out and a
+        # `\\wsl.localhost` path are caught too. A `/home/` that follows a host name or
+        # a path segment is part of a URL or of another tree, and passes.
+        # `tests/test_hooks.py` holds the cases.
+        entry: '(?i)[a-z]:[\\/]+users[\\/]+(?![\\/]*public(?![a-z0-9_.-]))|/mnt/[a-z]/users/(?!public(?![a-z0-9_.-]))|(?:(?<![a-z0-9._~%-])/+home/+|\\+home\\+)(?!runner(?![a-z0-9_.-]))[a-z_][a-z0-9_.-]*'
         types: [text]
         stages: [pre-commit, commit-msg, manual]
+        # The refused examples, on purpose.
+        exclude: ^tests/test_hooks\.py$
 
   # The locked ruff and ty, so the versions judging the code are the ones in `uv.lock`
   # and there is no second pin to keep level with them.
@@ -141,9 +145,11 @@ repos:
       - id: one-line-commit-message
         name: commit message is one line
         language: pygrep
-        # A subject, then blank or comment lines only. Anything else is a body. Git
+        # A subject, then blank or comment lines only. Anything else is a body,
+        # including a line that is indented and then starts with `#`, because git keeps
+        # it. A carriage return counts as blank, so CRLF endings can't hide a body. Git
         # ignores everything after its scissors line (`git commit -v` puts the diff
-        # there), so the search stops at it.
-        entry: '\A[^\n]*\n(?:[ \t]*\n|#(?! -+ >8 -+\n)[^\n]*\n)*[ \t]*[^#\s]'
+        # there), so the search stops at it. `tests/test_hooks.py` holds the cases.
+        entry: '\A[^\n]*\n(?:[ \t\r]*\n|#(?! -+ >8 -+\r?\n)[^\n]*\n)*(?:[ \t\r]*[^#\s]|[ \t\r]+#)'
         args: [--multiline]
         stages: [commit-msg]
