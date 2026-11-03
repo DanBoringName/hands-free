@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.egg-info/
+
+# Virtual environments and tool caches
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Editors and OS
+.vscode/settings*
+.idea/
+*.swp
+.DS_Store
+
+# Agent session state. The shared project settings are tracked. The project
+# instructions for Claude Code are kept outside the repository and linked in.
+.remember/
+.claude/*
+!.claude/settings.json
+CLAUDE.md
