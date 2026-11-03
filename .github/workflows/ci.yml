@@ -148,5 +148,20 @@ jobs:
       # Standard library only, so there is no environment to build. With no message
       # file the check reads `[in-place]` from the subjects already on the branch, so
       # an exception the commit-msg hook allowed is not refused here.
+      #
+      # The base branch's copy judges the pull request, so a change can't loosen the
+      # rule it is judged by, for instance by taking a path off the list while
+      # rewriting that file. A base with no copy yet runs the pull request's.
       - name: no landed line is rewritten
-        run: python3 protected_files.py
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          # A missing base fails here, rather than reading as a base with no copy.
+          git rev-parse --quiet --verify "origin/$BASE_REF^{commit}" > /dev/null
+          if git cat-file -e "origin/$BASE_REF:protected_files.py" 2> /dev/null; then
+            git show "origin/$BASE_REF:protected_files.py" > "$RUNNER_TEMP/protected_files.py"
+            python3 "$RUNNER_TEMP/protected_files.py"
+          else
+            echo "::notice::origin/$BASE_REF has no protected_files.py yet, so this pull request's copy runs"
+            python3 protected_files.py
+          fi
