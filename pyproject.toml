@@ -1,0 +1,81 @@
+[project]
+name = "hands-free"
+version = "0.0.0"
+description = "Hands-free voice for a fleet of Claude Code sessions."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "DanBoringName" }]
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.7",
+    "pytest>=9.1",
+    "pytest-cov>=7.1",
+    "ruff>=0.17",
+    "ty>=0.0.92",
+]
+
+# The root holds the development environment and the repository's own checks. The
+# switchboard arrives as a package with the first phase that needs code (ADR-002).
+[tool.uv]
+package = false
+# The oldest uv checked against the relative `exclude-newer` below.
+required-version = ">=0.11.15"
+# A version reaches the lock once it has been on the index for seven days, whether by
+# hand or through Dependabot, whose cooldown matches (ADR-002).
+exclude-newer = "7 days"
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "RET",  # flake8-return
+    "PT",   # flake8-pytest-style
+    "PIE",  # flake8-pie
+    "TID",  # flake8-tidy-imports
+    "PERF", # perflint
+    "RUF",  # ruff-specific rules
+    "S",    # flake8-bandit, since spoken words end up as commands (ADR-002)
+    "D",    # pydocstyle, docstrings on everything outside the tests
+]
+ignore = [
+    # Constructors are documented at the class level, so an `__init__` docstring would
+    # repeat the class's.
+    "D107",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# Tests document themselves by name, assert by design and drive git directly.
+"tests/**" = ["D", "S101", "S603", "S607"]
+# The append-only check runs git with fixed arguments, found on `PATH`.
+"protected_files.py" = ["S603", "S607"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
+
+# `pytest --cov` measures these and enforces the floor, locally and in CI alike. The
+# switchboard's package joins `source` when it lands (ADR-002).
+[tool.coverage.run]
+source = ["protected_files"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
