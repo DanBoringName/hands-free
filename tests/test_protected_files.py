@@ -84,6 +84,26 @@ def test_deleting_the_file_reports_every_line_under_its_old_path():
     assert {r.path for r in removals} == {"research/voice-room-switchboard.md"}
 
 
+CONTEXT_INSIDE_A_HUNK = """\
+diff --git a/DECISIONS.md b/DECISIONS.md
+--- a/DECISIONS.md
++++ b/DECISIONS.md
+@@ -40,4 +40,4 @@
+ Kept above.
+-Overhead stays under 1.5 s.
++Overhead stays under 2.5 s.
+ Kept below.
+\\ No newline at end of file
+"""
+
+
+def test_context_inside_a_hunk_moves_the_line_count():
+    # `diff.interHunkContext` or `GIT_DIFF_OPTS` can put context lines into a diff
+    # asked for with none, and each one pushes the next removal a line further down.
+    (removal,) = parse_removals(CONTEXT_INSIDE_A_HUNK)
+    assert removal.line_number == 41
+
+
 def test_header_shaped_content_stays_inside_its_own_hunk():
     removals = parse_removals(DASHES_IN_CONTENT)
     assert [(r.path, r.line_number) for r in removals] == [
@@ -158,6 +178,96 @@ def stage(repository: Path, text: str) -> None:
 def test_a_clean_index_passes(repository: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.chdir(repository)
     assert main([]) == 0
+
+
+@pytest.mark.parametrize("disguise", ["binary attribute", "nul byte", "textconv"])
+def test_a_rewrite_still_fails_when_git_would_not_show_it_as_text(
+    repository: Path, monkeypatch: pytest.MonkeyPatch, disguise: str
+):
+    monkeypatch.chdir(repository)
+    rewritten = "# Decisions\n\n### ADR-001 2026-01-01\nThe bar is 0.10.\n"
+    if disguise == "binary attribute":
+        (repository / ".gitattributes").write_text(f"{PROTECTED_PATHS[0]} -diff\n")
+    elif disguise == "nul byte":
+        rewritten += "\x00"
+    else:
+        (repository / ".gitattributes").write_text(f"{PROTECTED_PATHS[0]} diff=blank\n")
+        git(repository, "config", "diff.blank.textconv", "true")
+    # Each of these makes `git diff` print "Binary files differ" or nothing at all,
+    # with no removed line for the check to see.
+    stage(repository, rewritten)
+    assert main([]) == 1
+
+
+def test_fused_hunks_report_each_line_where_it_stood(
+    repository: Path, monkeypatch: pytest.MonkeyPatch, capsys
+):
+    monkeypatch.chdir(repository)
+    git(repository, "config", "diff.interHunkContext", "10")
+    stage(repository, "# Decision log\n\n### ADR-001 2026-01-01\nThe bar is 0.10.\n")
+    assert main([]) == 1
+    printed = capsys.readouterr().out
+    assert f"{PROTECTED_PATHS[0]}:1  # Decisions" in printed
+    assert f"{PROTECTED_PATHS[0]}:4  The bar is 0.05." in printed
+
+
+def test_merging_main_in_brings_its_landed_corrections_along(
+    repository: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.chdir(repository)
+    git(repository, "switch", "--quiet", "-c", "feat/next")
+    (repository / "notes.md").write_text("Branch work.\n")
+    git(repository, "add", "-A")
+    git(repository, "commit", "--quiet", "-m", "docs: branch work")
+    git(repository, "switch", "--quiet", "main")
+    stage(repository, "# Decisions\n\n### ADR-001 2026-01-01\nThe bar is 0.10.\n")
+    git(
+        repository,
+        "commit",
+        "--quiet",
+        "-m",
+        f"docs: correct the bar {IN_PLACE_MARKER}",
+    )
+    git(repository, "switch", "--quiet", "feat/next")
+    git(repository, "merge", "--quiet", "--no-ff", "--no-commit", "main")
+    # The correction is already on `main`, so the merge rewrites nothing that landed.
+    message = repository / "COMMIT_EDITMSG"
+    message.write_text("Merge branch 'main' into feat/next\n")
+    assert main([str(message)]) == 0
+
+
+def test_merging_in_an_unlanded_rewrite_still_fails(
+    repository: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.chdir(repository)
+    git(repository, "switch", "--quiet", "-c", "feat/other")
+    stage(repository, "# Decisions\n\n### ADR-001 2026-01-01\nThe bar is 0.10.\n")
+    git(repository, "commit", "--quiet", "-m", "docs: correct the bar")
+    git(repository, "switch", "--quiet", "-c", "feat/next", "main")
+    git(repository, "merge", "--quiet", "--no-ff", "--no-commit", "feat/other")
+    message = repository / "COMMIT_EDITMSG"
+    message.write_text("Merge branch 'feat/other' into feat/next\n")
+    assert main([str(message)]) == 1
+
+
+def test_a_marker_on_the_merged_branch_counts(
+    repository: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.chdir(repository)
+    git(repository, "switch", "--quiet", "-c", "feat/other")
+    stage(repository, "# Decisions\n\n### ADR-001 2026-01-01\nThe bar is 0.10.\n")
+    git(
+        repository,
+        "commit",
+        "--quiet",
+        "-m",
+        f"docs: correct the bar {IN_PLACE_MARKER}",
+    )
+    git(repository, "switch", "--quiet", "-c", "feat/next", "main")
+    git(repository, "merge", "--quiet", "--no-ff", "--no-commit", "feat/other")
+    message = repository / "COMMIT_EDITMSG"
+    message.write_text("Merge branch 'feat/other' into feat/next\n")
+    assert main([str(message)]) == 0
 
 
 def test_appending_to_a_landed_file_passes(

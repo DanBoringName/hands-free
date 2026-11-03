@@ -25,6 +25,7 @@
     "shellcheck",
     "Silero",
     "tailnet",
+    "textconv",
     "venv",
     "zizmor"
   ],

@@ -134,6 +134,10 @@ def parse_removals(diff: str) -> list[Removal]:
         if line.startswith("-"):
             removals.append(Removal(path, old_line, line[1:]))
             old_line += 1
+        elif line.startswith(" "):
+            # Asked for with no context, a diff can still carry some, through
+            # `diff.interHunkContext` or `GIT_DIFF_OPTS`. It stood in the old file too.
+            old_line += 1
     return removals
 
 
@@ -153,8 +157,25 @@ def landed_refs() -> tuple[str, ...]:
     return (f"origin/{base_ref}", base_ref, *LANDED_REFS)
 
 
+def heads() -> tuple[str, ...]:
+    """The commits the change being recorded descends from.
+
+    During a merge the index holds the result of joining `HEAD` and `MERGE_HEAD`, so
+    whatever either side has already landed is landed for the merge too.
+
+    Returns:
+        `HEAD`, followed by `MERGE_HEAD` when a merge is in progress.
+    """
+    if _run_git("rev-parse", "--quiet", "--verify", "MERGE_HEAD").returncode == 0:
+        return ("HEAD", "MERGE_HEAD")
+    return ("HEAD",)
+
+
 def landed_base(refs: tuple[str, ...] | None = None) -> str | None:
     """The merge base with the first reachable landed ref.
+
+    With a merge in progress this is the base of the landed ref and the merge about to
+    be recorded, which is what `git merge-base` computes when given three commits.
 
     Args:
         refs: candidate names, or `None` to take them from `landed_refs`.
@@ -163,7 +184,7 @@ def landed_base(refs: tuple[str, ...] | None = None) -> str | None:
         The merge-base commit, or `None` when no candidate is reachable.
     """
     for ref in refs if refs is not None else landed_refs():
-        finished = _run_git("merge-base", "HEAD", ref)
+        finished = _run_git("merge-base", ref, *heads())
         if finished.returncode == 0:
             return finished.stdout.strip()
     return None
@@ -192,6 +213,10 @@ def staged_diff(base: str | None, paths: tuple[str, ...] = PROTECTED_PATHS) -> s
     destination, so a protected file moved out from under it reads as a whole-file
     deletion however the diff is configured. Failing on that is the intended answer.
 
+    The file is always read as text. A `-diff` attribute, a NUL byte or a textconv
+    driver would otherwise turn a rewrite into "Binary files differ" or into nothing,
+    with no removed line left to see.
+
     Args:
         base: the commit to compare against, or `None` for `HEAD`.
         paths: the files to restrict the diff to.
@@ -203,6 +228,8 @@ def staged_diff(base: str | None, paths: tuple[str, ...] = PROTECTED_PATHS) -> s
         "diff",
         "--cached",
         "-U0",
+        "--text",
+        "--no-textconv",
         "--no-ext-diff",
         "--no-color",
         "--src-prefix=a/",
@@ -231,6 +258,9 @@ def branch_subjects(base: str | None) -> list[str]:
     after it to carry the marker as well, and a plain append would have to be labelled
     an in-place edit to get itself recorded.
 
+    During a merge that includes the commits being merged in, so a marker on the other
+    branch comes with its edit.
+
     Args:
         base: the merge base, or `None` when none was found.
 
@@ -239,7 +269,7 @@ def branch_subjects(base: str | None) -> list[str]:
     """
     if base is None:
         return []
-    return _git("log", "--format=%s", f"{base}..HEAD").splitlines()
+    return _git("log", "--format=%s", *heads(), f"^{base}").splitlines()
 
 
 def override_requested(subjects: list[str]) -> bool:
